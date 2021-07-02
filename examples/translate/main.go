@@ -16,28 +16,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package gotranslate
+package main
 
 import (
-	"net/http"
+	"fmt"
+
+	"github.com/rojserbest/gotranslate"
 )
 
-var baseHeaders = map[string]string{
-	"User-Agent": "GoogleTranslate/6.6.1.RC09.302039986 (Linux; U; Android 9; Redmi Note 8)",
-}
-
-type Translator struct {
-	Client  *http.Client
-	Url     string
-	TTSUrl  string
-	Headers map[string]string
-}
-
-func NewTranslator() *Translator {
-	return &Translator{
-		Client:  &http.Client{},
-		Url:     "https://translate.googleapis.com/translate_a/single",
-		TTSUrl:  "https://translate.google.com/translate_tts",
-		Headers: baseHeaders,
+func main() {
+	translator := gotranslate.NewTranslator()
+	translation, err := translator.Translate("en", "ja", "hello")
+	if err != nil {
+		fmt.Println(err)
+		return
 	}
+
+	language, err := translator.Detect(translation.Text)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println("Translation: " + translation.Text + "\nDetected language: " + language)
 }
