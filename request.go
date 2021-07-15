@@ -43,10 +43,6 @@ func getQuery(options interface{}) (string, error) {
 	return values.Encode(), nil
 }
 
-func decodeJSON(res *http.Response, v interface{}) error {
-	return json.NewDecoder(res.Body).Decode(v)
-}
-
 func (t Translator) doRequest(method string, url string, options interface{}) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
@@ -67,6 +63,18 @@ func (t Translator) doRequest(method string, url string, options interface{}) (*
 	if err != nil {
 		return nil, err
 	}
-
+	
+	if res.StatusCode != 200 {
+		var ans string
+		json.NewDecoder(res.Body).Decode(&ans)
+		if ans == "" {
+			ans = "empty page"
+		}
+		return nil, HTTPError{
+			Code:        res.StatusCode,
+			Description: ans,
+		}
+	}
+	
 	return res, nil
 }

@@ -18,49 +18,99 @@
 
 package gotranslate
 
-type TranslationResult struct {
-	Orig    string
-	Text    string
-	OrigRaw []string
-	TextRaw []string
-	Lang    string
-}
+import (
+	"encoding/json"
+	"io"
+	"strconv"
+	"strings"
+)
 
-type TranslateOptions struct {
-	Q          string `json:"q"`
-	SourceLang string `json:"sl"`
-	TargetLang string `json:"tl"`
-	Client     string `json:"client"`
-	Dt         string `json:"dt"`
-	Dj         string `json:"dj"`
-	Ie         string `json:"ie"`
-	Oe         string `json:"oe"`
-}
-
-func NewTranslateOptions() *TranslateOptions {
-	return &TranslateOptions{
-		SourceLang: "auto",
-		TargetLang: "en",
-		Client:     "gtx",
-		Dt:         "t",
-		Dj:         "1",
-		Ie:         "utf-8",
-		Oe:         "utf-8",
+func (t *Translator) Translate(from, to, text string) (*TranslationResult, error) {
+	options := NewTranslateOptions()
+	options.SourceLang = from
+	options.TargetLang = to
+	options.Q = text
+	res, err := t.doRequest("POST", t.Url, options)
+	if err != nil {
+		return nil, err
 	}
+	result := map[string]interface{}{}
+	err = json.NewDecoder(res.Body).Decode(&result)
+	out := t.parse(result)
+	return &out, err
 }
 
-func (t Translator) Translate(text string, options *TranslateOptions) (TranslationResult, error) {
+// TranslateCustom function translate your text with your options
+func (t *Translator) TranslateWithOptions(text string, options *TranslateOptions) (*TranslationResult, error) {
 	if options == nil {
 		options = NewTranslateOptions()
 	}
 	options.Q = text
 
-	result := map[string]interface{}{}
 	res, err := t.doRequest("POST", t.Url, options)
 	if err != nil {
-		return t.parse(result), err
+		return nil, err
+	}
+	result := map[string]interface{}{}
+	err = json.NewDecoder(res.Body).Decode(&result)
+	out := t.parse(result)
+	return &out, err
+}
+
+
+
+// Detect is wrapper of Translate but return only language of text
+func (t *Translator) Detect(text string) (string, error) {
+	result, err := t.TranslateWithOptions(text, nil)
+	if err != nil {
+		return "", err
+	}
+	
+	return result.Lang, err
+}
+
+
+
+
+// TTS speech your text into a file
+func (t Translator) TTS(text string, dst io.Writer, options *TTSOptions) (int64, error) {
+	if options == nil {
+		options = NewTTSOptions()
+	}
+	options.Q = text
+	options.TextLen = strconv.Itoa(len(text))
+	
+	res, err := t.doRequest("GET", t.TTSUrl, options)
+	if err != nil {
+		return 0, err
+	}
+	
+	return io.Copy(dst, res.Body)
+}
+
+
+
+// parse answer from the Google API
+func (t Translator) parse(raw map[string]interface{}) TranslationResult {
+	x := TranslationResult{}
+	if _, ok := raw["sentences"]; ok {
+		for _, sentence := range raw["sentences"].([]interface{}) {
+			sentence := sentence.(map[string]interface{})
+			
+			if trans, ok := sentence["trans"].(string); ok {
+				x.TextRaw = append(x.TextRaw, trans)
+			}
+			if orig, ok := sentence["orig"].(string); ok {
+				x.OrigRaw = append(x.OrigRaw, orig)
+			}
+		}
 	}
 
-	err = decodeJSON(res, &result)
-	return t.parse(result), err
+	
+	x.Orig = strings.Join(x.OrigRaw, " ")
+	x.Text = strings.Join(x.TextRaw, " ")
+	if _, ok := raw["src"]; ok {
+		x.Lang = raw["src"].(string)
+	}
+	return x
 }
