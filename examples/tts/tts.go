@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/rojserbest/gotranslate"
+	"github.com/roj1512/gotranslate"
 )
 
 func main() {

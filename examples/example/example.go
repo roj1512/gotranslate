@@ -21,7 +21,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/rojserbest/gotranslate"
+	"github.com/roj1512/gotranslate"
 )
 
 func main() {

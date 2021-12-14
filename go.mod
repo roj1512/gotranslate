@@ -1,3 +1,3 @@
-module github.com/rojserbest/gotranslate
+module github.com/roj1512/gotranslate
 
 go 1.16
