@@ -17,7 +17,7 @@ Requirements:
 
 
 ```bash
-$ go get -u github.com/rojserbest/gotranslate
+$ go get -u github.com/roj1512/gotranslate
 ```
 ----
 ### Usage
